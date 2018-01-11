@@ -91,12 +91,12 @@ class Resources(object):
                 continue
             self._add_instance(instance)
 
-    def select_instances_name_substring(self, search_substring):
+    def select_instances_name_substring(self, search_substring, all_projects):
         """will select related resources based on provided substring
 
         Excludes blacklisted instances
         """
-        for instance in self._cloud.list_servers():
+        for instance in self._cloud.list_servers(all_projects=all_projects):
             if self.is_blacklisted(instance):
                 continue
             if search_substring in instance.name:
@@ -237,13 +237,13 @@ class Resources(object):
                           data={'subnet_ids': subnet_ids,
                                 'network_id': network_id})
 
-    def select_resources(self, substring):
+    def select_resources(self, substring, all_projects):
         """Select different type of resources.
 
         :param resources: collection of resources
         :param substring: part of resources name
         """
-        self.select_instances_name_substring(substring)
+        self.select_instances_name_substring(substring, all_projects)
         try:
             self.select_networks_name_substring(substring)
             self.select_subnets_name_substring(substring)

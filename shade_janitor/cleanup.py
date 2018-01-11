@@ -9,11 +9,20 @@ def show_cleanup(cleanup_cmd):
     logging.info(cleanup_cmd)
 
 
-def cleanup_instances(cloud, instances):
+def cleanup_instances(cloud, instances, all_projects):
     """Cleanup instances."""
+    import pdb
+    pdb.set_trace()
+
     for uuid in instances:
         Summary.num_of_instances += 1
-        cloud.delete_server(uuid, wait=True, delete_ips=True)
+        if all_projects:
+            server = cloud.get_server(uuid, bare=True, all_projects=True)
+            if not server:
+                return False
+            cloud._delete_server(server, wait=True, delete_ips=True)
+        else:
+            cloud.delete_server(uuid, wait=True, delete_ips=True)
 
 
 def dry_cleanup_instances(instances):
@@ -136,19 +145,23 @@ def dry_cleanup_secgroups(secgroups):
             secgroups[secgroup]['id']))
 
 
-def cleanup_resources(cloud, resource_selection, dry_run=True):
+def cleanup_resources(cloud, resource_selection, all_projects=False, dry_run=True):
     """Cleanup resources
 
     :param cloud: the cloud object.
     :param resource_selection: selected resources intended for a cleanup.
+    :param all_projects: indicates whether to cleanup resource not for only 
+            current project but for all resources where found for 
     :param dry_run: indicates if a real cleanup will run or a simulation.
     """
+    import pdb
+    pdb.set_trace()
     if dry_run:
         if 'instances' in resource_selection:
-            dry_cleanup_instances(resource_selection['instances'])
+            dry_cleanup_instances(resource_selection['instances'], all_projects)
     else:
         if 'instances' in resource_selection:
-            cleanup_instances(cloud, resource_selection['instances'])
+            cleanup_instances(cloud, resource_selection['instances'], all_projects)
 
     if 'router_interfaces' in resource_selection:
         router_ids = []

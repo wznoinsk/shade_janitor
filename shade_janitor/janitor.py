@@ -41,6 +41,12 @@ def create_parser():
         '--floatingips', dest='floatingips', action='store_true',
         help='cleanup any unused floating ips in tenant')
     parser.add_argument(
+        '--subnets', dest='subnets', action='store_true',
+        help='cleanup any subnets')
+    parser.add_argument(
+        '--ports', dest='ports', action='store_true',
+        help='cleanup any ports')
+    parser.add_argument(
         '--old', dest='old_instances', action='store_true',
         help='attempt to identify oldest instance to be purged')
     parser.add_argument(
@@ -78,6 +84,9 @@ def create_parser():
     parser.add_argument(
         '--quiet', '-q', dest='quiet', action='store_true',
         help='quiet down the output for normal runs')
+    parser.add_argument(
+        '--all-projects', dest='all_projects', action='store_true',
+        help='cleans up resources of all projects/tenants')
 
     return parser
 
@@ -141,17 +150,16 @@ def do_cleanup(cloud, cleanup, pp, args):
             logging.debug(resources_selected_str)
 
         if args.dryrun:
-            cleanup_resources(cloud, cleanup, dry_run=True)
+            cleanup_resources(cloud, cleanup, all_projects=args.all_projects, dry_run=True)
 
         if args.run_cleanup:
-            cleanup_resources(cloud, cleanup, dry_run=False)
+            cleanup_resources(cloud, cleanup, all_projects=args.all_projects, dry_run=False)
 
 
 if __name__ == '__main__':
 
     parser = create_parser()
     args = parser.parse_args()
-
     pp = pprint.PrettyPrinter(indent=4)
     now = datetime.datetime.now(pytz.utc)
 
@@ -163,6 +171,18 @@ if __name__ == '__main__':
 
     if args.floatingips:
         resources.select_floatingips_unattached()
+        cleanup = resources.get_selection()
+        do_cleanup(cloud, cleanup, pp, args)
+        resources = Resources(cloud)
+
+    if args.subnets:
+        resources.select_subnets()
+        cleanup = resources.get_selection()
+        do_cleanup(cloud, cleanup, pp, args)
+        resources = Resources(cloud)
+
+    if args.ports:
+        resources.select_subnets()
         cleanup = resources.get_selection()
         do_cleanup(cloud, cleanup, pp, args)
         resources = Resources(cloud)
@@ -226,10 +246,10 @@ if __name__ == '__main__':
             logging.debug(resources_selected_str)
 
             if args.dryrun:
-                cleanup_resources(cloud, cleanup, dry_run=True)
+                cleanup_resources(cloud, cleanup, all_projects=args.all_projects, dry_run=True)
             if args.run_cleanup:
                 try:
-                    cleanup_resources(cloud, cleanup, dry_run=False)
+                    cleanup_resources(cloud, cleanup, all_projects=args.all_projects, dry_run=False)
                 except shade.exc.OpenStackCloudException as e:
                     logging.error(
                         'We had a problem trying to clean up [{}]'
@@ -238,7 +258,7 @@ if __name__ == '__main__':
 
     if not args.old_instances and not args.unused and not args.floatingips:
         substring = args.substring or ''
-        resources.select_resources(substring)
+        resources.select_resources(substring, all_projects=args.all_projects)
         cleanup = resources.get_selection()
         do_cleanup(cloud, cleanup, pp, args)
 
